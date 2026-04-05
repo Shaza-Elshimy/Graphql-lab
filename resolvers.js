@@ -47,6 +47,34 @@ export const resolvers = {
 
       const todo = await Todo.create({...args.todo, userId: context.id });
       return todo;
+    },
+    deleteTodo: async (_, args, context) => {
+        if (!context?.id) {
+            throw new GraphQLError("Not authorized");
+        }
+        const todo = await Todo.findById(args.id);
+        if (!todo) {
+            throw new GraphQLError("Todo not found");
+        }
+        if (todo.userId.toString() !== context.id) {
+            throw new GraphQLError("Not authorized to delete this todo");
+        }
+        await Todo.findByIdAndDelete(args.id);
+        return "Todo deleted successfully";
+    },
+    updateTodo: async (_, args, context) => {
+        if (!context?.id) {
+            throw new GraphQLError("Not authorized");
+        }
+        const todo = await Todo.findById(args.id);
+        if (!todo) {
+            throw new GraphQLError("Todo not found");
+        }
+        if (todo.userId.toString() !== context.id) {
+            throw new GraphQLError("Not authorized to update this todo");
+        }
+        const updatedTodo = await Todo.findByIdAndUpdate(args.id, args.todo, { new: true });
+        return updatedTodo;
     }
     
   },

@@ -26,6 +26,8 @@ type Mutation {
   createUser(user: UserInput): User
   login(user: LoginInput): LoginResponse
   createTodo(todo: TodoInput): Todo
+  deleteTodo(id: ID!): String
+  updateTodo(id: ID!, todo: TodoInput): Todo
 }
 
   input UserInput {
