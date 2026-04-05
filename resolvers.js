@@ -1,87 +1,86 @@
 import { GraphQLError } from "graphql";
-import User from "./models/users.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import Todo from "./models/todos.js";
 
 export const resolvers = {
   Query: {
     hello: () => {
       return "Hello world!";
     },
-    users: async () => {
-      return await User.find();
+    users: async (_, __, { dataSources }) => {
+      return await dataSources.users.getUsers();
     },
-    user: async (_, args) => {
-      return await User.findById(args.id);
+    user: async (_, args, { dataSources }) => {
+      return await dataSources.users.getUserById(args.id);
     },
-    todos: async () => {
-      return await Todo.find();
+    todos: async (_, __, { dataSources }) => {
+      return await dataSources.todos.getTodos();
     },
-    todo: async (_, args) => {
-      return await Todo.findById(args.id);
-    }   
+    todo: async (_, args, { dataSources }) => {
+      return await dataSources.todos.getTodoById(args.id);
+    },
   },
   Mutation: {
-    createUser: async (_, args) => {
-      const user = await User.create(args.user);
+    createUser: async (_, args, { dataSources }) => {
+      const user = await dataSources.users.createUser(args.user);
       return user;
     },
-    login: async (_, args) => {
-      const user = await User.findOne({ email: args.user.email });
-        if (!user) {
-            throw new GraphQLError("user not found");
-        }
-        const isMatch = await bcrypt.compare(args.user.password, user.password);
-        if (!isMatch) {
-            throw new GraphQLError("Invalid email or password");
-        }
+    login: async (_, args, { dataSources }) => {
+      const user = await dataSources.users.getUserByEmail(args.user.email);
+      if (!user) {
+        throw new GraphQLError("user not found");
+      }
+      const isMatch = await bcrypt.compare(args.user.password, user.password);
+      if (!isMatch) {
+        throw new GraphQLError("Invalid email or password");
+      }
 
-        let token = jwt.sign({ id: user._id, role: user.role }, "secretkey");
-        return { message: "Login successful", token };
+      let token = jwt.sign({ id: user._id, role: user.role }, "secretkey");
+      return { message: "Login successful", token };
     },
-    createTodo: async (_, args,context) => {
-        if (!context?.id) {
-            throw new GraphQLError("Not authorized");
-        }
+    createTodo: async (_, args, { user, dataSources }) => {
+      if (!user?.id) {
+        throw new GraphQLError("Not authorized");
+      }
 
-      const todo = await Todo.create({...args.todo, userId: context.id });
+      const todo = await dataSources.todos.createTodo({
+        ...args.todo,
+        userId: user.id,
+      });
       return todo;
     },
-    deleteTodo: async (_, args, context) => {
-        if (!context?.id) {
-            throw new GraphQLError("Not authorized");
-        }
-        const todo = await Todo.findById(args.id);
-        if (!todo) {
-            throw new GraphQLError("Todo not found");
-        }
-        if (todo.userId.toString() !== context.id) {
-            throw new GraphQLError("Not authorized to delete this todo");
-        }
-        await Todo.findByIdAndDelete(args.id);
-        return "Todo deleted successfully";
+    deleteTodo: async (_, args, { user, dataSources }) => {
+      if (!user?.id) {
+        throw new GraphQLError("Not authorized");
+      }
+      const todo = await dataSources.todos.getTodoById(args.id);
+      if (!todo) {
+        throw new GraphQLError("Todo not found");
+      }
+      if (todo.userId.toString() !== user.id) {
+        throw new GraphQLError("Not authorized to delete this todo");
+      }
+      await dataSources.todos.deleteTodoById(args.id);
+      return "Todo deleted successfully";
     },
-    updateTodo: async (_, args, context) => {
-        if (!context?.id) {
-            throw new GraphQLError("Not authorized");
-        }
-        const todo = await Todo.findById(args.id);
-        if (!todo) {
-            throw new GraphQLError("Todo not found");
-        }
-        if (todo.userId.toString() !== context.id) {
-            throw new GraphQLError("Not authorized to update this todo");
-        }
-        const updatedTodo = await Todo.findByIdAndUpdate(args.id, args.todo, { new: true });
-        return updatedTodo;
-    }
-    
+    updateTodo: async (_, args, { user, dataSources }) => {
+      if (!user?.id) {
+        throw new GraphQLError("Not authorized");
+      }
+      const todo = await dataSources.todos.getTodoById(args.id);
+      if (!todo) {
+        throw new GraphQLError("Todo not found");
+      }
+      if (todo.userId.toString() !== user.id) {
+        throw new GraphQLError("Not authorized to update this todo");
+      }
+      const updatedTodo = await dataSources.todos.updateTodoById(args.id, args.todo);
+      return updatedTodo;
+    },
   },
-  User:{
-    todos: async (parent) => {
-        const todo = await Todo.find({ userId: parent._id });
-        return await todo;
-        }
-  }
+  User: {
+    todos: async (parent, _, { dataSources }) => {
+      return await dataSources.todos.getTodosByUserId(parent._id);
+    },
+  },
 };

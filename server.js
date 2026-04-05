@@ -4,6 +4,8 @@ import { schema } from "./schema.js";
 import { resolvers } from "./resolvers.js";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
+import { UserDataSource } from "./datasources/userDataSource.js";
+import { TodoDataSource } from "./datasources/todoDataSource.js";
 
 mongoose
   .connect("mongodb://127.0.0.1:27017/graphqlDB")
@@ -25,6 +27,7 @@ const info = await startStandaloneServer(server, {
   },
   context: async ({ req }) => {
     let { authorization } = req.headers;
+    let user = null;
 
     if (authorization) {
       try {
@@ -33,13 +36,19 @@ const info = await startStandaloneServer(server, {
           : authorization;
 
         const decoded = jwt.verify(token, "secretkey");
-        return decoded;
+        user = decoded;
       } catch (err) {
         console.log("Invalid token", err);
-        return {};
       }
     }
-    return {};
+
+    return {
+      user,
+      dataSources: {
+        users: new UserDataSource(),
+        todos: new TodoDataSource(),
+      },
+    };
   },
 });
 
