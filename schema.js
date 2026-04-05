@@ -15,6 +15,7 @@ type User {
 
 type Mutation {
   createUser(user: UserInput): User
+  login(user: LoginInput): LoginResponse
 }
 
   input UserInput {
@@ -23,4 +24,15 @@ type Mutation {
     password: String!
     role: String
 }
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type LoginResponse {
+  message: String
+  token: String
+}
+
 `
