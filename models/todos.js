@@ -17,7 +17,8 @@ const todosSchema=mongoose.Schema({
     },
     userId:{
       type:mongoose.SchemaTypes.ObjectId,
-      ref:'User'
+      ref:'User',
+      required:[true,"todo must belong to a user"]
     }
 })
 

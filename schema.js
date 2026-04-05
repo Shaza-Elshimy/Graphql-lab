@@ -3,6 +3,8 @@ type Query {
   hello: String
   users: [User]
   user(id: ID!): User
+  todos: [Todo]
+  todo(id: ID!): Todo
 }
 
 type User {
@@ -11,11 +13,19 @@ type User {
     email: String
     role: String
     password: String
+    todos: [Todo]
   }
+type Todo {
+    id: ID
+    title: String
+    status: String
+    userId: ID
+}
 
 type Mutation {
   createUser(user: UserInput): User
   login(user: LoginInput): LoginResponse
+  createTodo(todo: TodoInput): Todo
 }
 
   input UserInput {
@@ -33,6 +43,12 @@ input LoginInput {
 type LoginResponse {
   message: String
   token: String
+}
+
+input TodoInput {
+  title: String!
+  status: String
+  userId: ID
 }
 
 `

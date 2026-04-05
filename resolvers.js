@@ -2,6 +2,7 @@ import { GraphQLError } from "graphql";
 import User from "./models/users.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import Todo from "./models/todos.js";
 
 export const resolvers = {
   Query: {
@@ -14,6 +15,12 @@ export const resolvers = {
     user: async (_, args) => {
       return await User.findById(args.id);
     },
+    todos: async () => {
+      return await Todo.find();
+    },
+    todo: async (_, args) => {
+      return await Todo.findById(args.id);
+    }   
   },
   Mutation: {
     createUser: async (_, args) => {
@@ -32,6 +39,21 @@ export const resolvers = {
 
         let token = jwt.sign({ id: user._id, role: user.role }, "secretkey");
         return { message: "Login successful", token };
+    },
+    createTodo: async (_, args,context) => {
+        if (!context?.id) {
+            throw new GraphQLError("Not authorized");
+        }
+
+      const todo = await Todo.create({...args.todo, userId: context.id });
+      return todo;
     }
+    
   },
+  User:{
+    todos: async (parent) => {
+        const todo = await Todo.find({ userId: parent._id });
+        return await todo;
+        }
+  }
 };
